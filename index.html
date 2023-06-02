@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disco Planet</title>
+
+  <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
+    integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous" />
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    { 
+      "imports": { 
+        "three": "https://unpkg.com/three@0.151.2/build/three.module.js", 
+        "three/addons/": "https://unpkg.com/three@0.151.2/examples/jsm/" 
+      } 
+    } 
+  </script>
+
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <div id="controls">
+    <button id="play">
+      <i class="fas fa-play"></i>
+    </button>
+    <button id="pause">
+      <i class="fas fa-pause"></i>
+    </button>
+    <button id="stop">
+      <i class="fas fa-stop"></i>
+    </button>
+    <hr>
+    <button id="sample0">
+      <i class="fas fa-music"></i>
+      <span>1</span>
+    </button>
+    <button id="sample1">
+      <i class="fas fa-music"></i>
+      <span>2</span>
+    </button>
+    <button id="sample2">
+      <i class="fas fa-music"></i>
+      <span>3</span>
+    </button>
+    <button id="sample3">
+      <i class="fas fa-music"></i>
+      <span>4</span>
+    </button>
+  </div>
+
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.3.0/simplex-noise.min.js'></script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+
+</html>
