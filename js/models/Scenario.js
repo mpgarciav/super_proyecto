@@ -240,6 +240,7 @@ export default class Scenario {
         const g = imageData.data[index + 1] / 255;
         const b = imageData.data[index + 2] / 255;
         const gray = (r + g + b) / 3;
+        
 
         particles.geometry.attributes.position.setY(i, gray * 10);
         particles.geometry.attributes.color.setX(i, r);
