@@ -56,14 +56,14 @@ export default class Scenario {
       bloomPass: {
         exposure: 0.7619,
         strength: 1.8,
-        threshold: 0,
+        threshold: 1,
         radius: 0.57,
       },
       afterimagePass: {
-        value: 0.75,
+        value: 0,
       },
       filmPass: {
-        noiseIntensity: 0.8,
+        noiseIntensity: 0,
         scanlinesIntensity: 0.3,
         scanlinesCount: 256,
         grayscale: false,
@@ -98,6 +98,17 @@ export default class Scenario {
       .add(this.config.camera, "focalLength", 1, 25)
       .onChange((value) => {
         this.camera.setLens(value);
+      });
+
+    const afterImageEffect = this.gui.addFolder("After image");
+    afterImageEffect.close();
+
+    this.afterimagePass.uniforms.damp.value = this.config.afterimagePass.value;
+
+    afterImageEffect
+      .add(this.config.afterimagePass, "value", 0.0, 1.0)
+      .onChange((value) => {
+        this.afterimagePass.uniforms.damp.value = Number(value);
       });
 
     const bloomEffect = this.gui.addFolder("Bloom");
@@ -170,7 +181,7 @@ export default class Scenario {
   }
 
   _createLights() {
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0);
+    this.ambientLight = new THREE.AmbientLight(0xff0000, 1);
     this.scene.add(this.ambientLight);
   }
 
@@ -186,9 +197,9 @@ export default class Scenario {
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const posX = 0.03 * (-x + width / 2);
+        const posX = 1 * (-x + width / 2);
         const posY = 0;
-        const posZ = 0.03 * (y - height / 2);
+        const posZ = 1 * (y - height / 2);
         vertices_base.push(posX, posY, posZ);
 
         const r = 1.0;
@@ -240,7 +251,6 @@ export default class Scenario {
         const g = imageData.data[index + 1] / 255;
         const b = imageData.data[index + 2] / 255;
         const gray = (r + g + b) / 3;
-        
 
         particles.geometry.attributes.position.setY(i, gray * 10);
         particles.geometry.attributes.color.setX(i, r);
@@ -322,9 +332,9 @@ export default class Scenario {
 
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(this.renderScene);
-    this.composer.addPass(this.afterimagePass);
-    this.composer.addPass(this.bloomPass);
-    this.composer.addPass(this.filmPass);
+    // this.composer.addPass(this.afterimagePass);
+    // this.composer.addPass(this.bloomPass);
+    // this.composer.addPass(this.filmPass);
   }
 
   _createScenario() {}
@@ -359,7 +369,10 @@ export default class Scenario {
 
     // Get image from camera
     navigator.mediaDevices
-      .getUserMedia({ video: true, audio: false })
+      .getUserMedia({
+        video: { width: this.webcam.width, height: this.webcam.height },
+        audio: false,
+      })
       .then((stream) => {
         this.webcam.srcObject = stream;
         this._createParticles();
@@ -382,9 +395,7 @@ export default class Scenario {
     this._createAudio(musicPlayer);
     this._initWebcam();
 
-    this.renderer.setAnimationLoop(() => {
-      this.animate();
-    });
+    this.renderer.setAnimationLoop(() => this.animate());
   }
 
   _animateCamera() {
@@ -520,8 +531,8 @@ void main() {
     vGray = (vColor.x + vColor.y + vColor.z) / 3.0;
 
     // Set vertex size
-    gl_PointSize = size * vGray * 3.0;
-    // gl_PointSize = size;
+    // gl_PointSize = size * vGray * 3.0;
+    gl_PointSize = size;
 
     // Set vertex position
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
@@ -535,14 +546,7 @@ varying float vGray;
 void main() {
     float gray = vGray;
 
-    // Decide whether to draw particle
-    if(gray > 0.5){
-        gray = 0.0;
-    }else{
-        gray = 1.0;
-    }
-
     // Set vertex color
-    gl_FragColor = vec4(vColor, gray);
+    gl_FragColor = vec4(vColor, 1);
 }
 `;
