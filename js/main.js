@@ -1,32 +1,23 @@
-import Scenario from './models/Scenario.js'
-import MusicPlayer from './models/MusicPlayer.js'
+import Scenario from "./models/Scenario.js";
+import MusicPlayer from "./models/MusicPlayer.js";
+import Sample from "./models/Sample.js";
 
-window.addEventListener('load', () => {
-  const musicPlayer = new MusicPlayer()
+window.addEventListener("load", () => {
+  const sample = new Sample("./audio/song.mp3");
 
-  const app = new Scenario('#app')
-  app.init(musicPlayer)
+  const musicPlayer = new MusicPlayer([sample]);
 
-  const playButton = document.getElementById('play')
-  playButton.addEventListener('click', () => app._onMusicControl('play'))
+  const app = new Scenario("#app");
+  app.init(musicPlayer);
 
-  const pauseButton = document.getElementById('pause')
-  pauseButton.addEventListener('click', () => app._onMusicControl('pause'))
+  const playButton = document.getElementById("play");
+  playButton.addEventListener("click", () => app.onMusicControl("play"));
 
-  const stopButton = document.getElementById('stop')
-  stopButton.addEventListener('click', () => app._onMusicControl('stop'))
+  const pauseButton = document.getElementById("pause");
+  pauseButton.addEventListener("click", () => app.onMusicControl("pause"));
 
-  const sample0Button = document.getElementById('sample0')
-  sample0Button.addEventListener('click', () => app.musicPlayer.muteSample(0))
+  const stopButton = document.getElementById("stop");
+  stopButton.addEventListener("click", () => app.onMusicControl("stop"));
 
-  const sample1Button = document.getElementById('sample1')
-  sample1Button.addEventListener('click', () => app.musicPlayer.muteSample(1))
-
-  const sample2Button = document.getElementById('sample2')
-  sample2Button.addEventListener('click', () => app.musicPlayer.muteSample(2))
-
-  const sample3Button = document.getElementById('sample3')
-  sample3Button.addEventListener('click', () => app.musicPlayer.muteSample(3))
-
-  window.addEventListener('resize', () => app._onWindowResize())
-})
+  window.addEventListener("resize", () => app._onWindowResize());
+});

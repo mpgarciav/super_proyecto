@@ -25,7 +25,7 @@ const Utils = {
 export default class Scenario {
   constructor(container) {
     this.container = document.querySelector(container);
-
+    this.frequencies = null;
     this.config = {
       colors: {
         purple: 0x463190,
@@ -37,6 +37,7 @@ export default class Scenario {
       grid: {
         w: 200,
         h: 200,
+        gap: 0.2,
       },
       camera: {
         theta: 0,
@@ -50,8 +51,13 @@ export default class Scenario {
         radius: 400,
       },
       particles: {
-        scale: 1,
-        velocity: Math.PI / 180,
+        scale: 15,
+        velocity: 1,
+        growthFactor: {
+          max: 20,
+          min: 0,
+          value: 0,
+        },
       },
       bloomPass: {
         exposure: 0.7619,
@@ -185,6 +191,25 @@ export default class Scenario {
     // this.scene.add(this.ambientLight);
   }
 
+  /**
+   * [Get image pixel data]
+   * @param {HTMLVideoElement} image - Image
+   * */
+  _getImageData(video) {
+    const w = video.width;
+    const h = video.height;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = w;
+    canvas.height = h;
+
+    ctx.drawImage(video, 0, 0);
+
+    return ctx.getImageData(0, 0, w, h);
+  }
+
   _createParticles() {
     const imageData = this._getImageData(this.webcam);
 
@@ -197,9 +222,9 @@ export default class Scenario {
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const posX = 1 * (-x + width / 2);
+        const posX = -x + width / 2;
         const posY = 0;
-        const posZ = 1 * (y - height / 2);
+        const posZ = y - height / 2;
         vertices_base.push(posX, posY, posZ);
 
         const r = 1.0;
@@ -224,14 +249,14 @@ export default class Scenario {
         },
         size: {
           type: "f",
-          value: 5.0,
+          value: this.config.particles.scale,
         },
       },
       vertexShader: vertexSource,
       fragmentShader: fragmentSource,
       transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      // depthWrite: false,
+      // blending: THREE.AdditiveBlending,
     });
 
     this.particlesPlane = new THREE.Points(geometry, material);
@@ -252,7 +277,10 @@ export default class Scenario {
         const b = imageData.data[index + 2] / 255;
         const gray = (r + g + b) / 3;
 
-        particles.geometry.attributes.position.setY(i, gray * 10);
+        particles.geometry.attributes.position.setY(
+          i,
+          gray * this.config.particles.growthFactor.value
+        );
         particles.geometry.attributes.color.setX(i, r);
         particles.geometry.attributes.color.setY(i, g);
         particles.geometry.attributes.color.setZ(i, b);
@@ -273,43 +301,19 @@ export default class Scenario {
 
     this.audioContext = new AudioContext();
 
-    const sample0 = this.audioContext.createMediaElementSource(
+    const sample1 = this.audioContext.createMediaElementSource(
       this.samples[0].element
     );
-    const sample1 = this.audioContext.createMediaElementSource(
-      this.samples[1].element
-    );
-    const sample2 = this.audioContext.createMediaElementSource(
-      this.samples[2].element
-    );
-    const sample3 = this.audioContext.createMediaElementSource(
-      this.samples[3].element
-    );
 
-    this.audioAnalyser0 = this.audioContext.createAnalyser();
     this.audioAnalyser1 = this.audioContext.createAnalyser();
-    this.audioAnalyser2 = this.audioContext.createAnalyser();
-    this.audioAnalyser3 = this.audioContext.createAnalyser();
 
-    sample0.connect(this.audioAnalyser0);
     sample1.connect(this.audioAnalyser1);
-    sample2.connect(this.audioAnalyser2);
-    sample3.connect(this.audioAnalyser3);
 
-    this.audioAnalyser0.connect(this.audioContext.destination);
     this.audioAnalyser1.connect(this.audioContext.destination);
-    this.audioAnalyser2.connect(this.audioContext.destination);
-    this.audioAnalyser3.connect(this.audioContext.destination);
 
-    this.audioAnalyser0.fftSize = 512;
-    this.audioAnalyser1.fftSize = 512;
-    this.audioAnalyser2.fftSize = 512;
-    this.audioAnalyser3.fftSize = 512;
+    this.audioAnalyser1.fftSize = 2048;
 
-    this.audioArray0 = new Uint8Array(this.audioAnalyser0.frequencyBinCount);
     this.audioArray1 = new Uint8Array(this.audioAnalyser1.frequencyBinCount);
-    this.audioArray2 = new Uint8Array(this.audioAnalyser2.frequencyBinCount);
-    this.audioArray3 = new Uint8Array(this.audioAnalyser3.frequencyBinCount);
   }
 
   _createPostEffects() {
@@ -364,8 +368,8 @@ export default class Scenario {
     this.webcam = document.createElement("video");
     this.webcam.id = "webcam";
     this.webcam.autoplay = true;
-    this.webcam.width = 640;
-    this.webcam.height = 480;
+    this.webcam.width = 96;
+    this.webcam.height = 72;
 
     // Get image from camera
     navigator.mediaDevices
@@ -395,7 +399,7 @@ export default class Scenario {
     this._createAudio(musicPlayer);
     this._initWebcam();
 
-    this.renderer.setAnimationLoop(() => this.animate());
+    this.renderer.setAnimationLoop(() => this._animate());
   }
 
   _animateCamera() {
@@ -412,27 +416,30 @@ export default class Scenario {
   }
 
   _animateEffects() {
-    const { lowerMaxFr, overallAvg } = this._getFrequencies(
-      this.audioAnalyser2,
-      this.audioArray2
+    const { overallAvg } = this.frequencies;
+    const { min: minGrowthFactor, max: maxGrowthFactor } =
+      this.config.particles.growthFactor;
+
+    // const reducedLowerFr = Math.pow(lowerMaxFr, 0.8);
+
+    this.config.particles.growthFactor.value = Utils.modulate(
+      overallAvg,
+      0,
+      100,
+      minGrowthFactor,
+      maxGrowthFactor
     );
-    const reducedLowerFr = Math.pow(lowerMaxFr, 0.8);
 
-    const bass =
-      reducedLowerFr < 0.3
-        ? 0.75
-        : Utils.modulate(reducedLowerFr, 0, 1, 0.42, 1.67);
-
-    const treble = Utils.modulate(overallAvg, 10, 50, 0.5, 1);
+    /*     const treble = Utils.modulate(overallAvg, 10, 50, 0.5, 1);
 
     this.afterimagePass.uniforms.damp.value = Number(treble);
-    this.config.afterimagePass.value = treble;
+    this.config.afterimagePass.value = treble; */
   }
 
   _animateLights() {
     const { overallAvg } = this._getFrequencies(
-      this.audioAnalyser3,
-      this.audioArray3
+      this.audioAnalyser1,
+      this.audioArray1
     );
 
     const lights = Utils.modulate(overallAvg, 0, 20, 0.5, 0);
@@ -446,10 +453,10 @@ export default class Scenario {
 
   _animateMusic() {
     this._animateEffects();
-    this._animateLights();
+    // this._animateLights();
   }
 
-  animate() {
+  _animate() {
     this.config.camera.theta += this.config.camera.velocity;
 
     if (this.musicPlayer.isPlaying()) {
@@ -457,28 +464,23 @@ export default class Scenario {
     }
 
     // this._animateCamera();
+    this._getMusicFrequencies();
     this._animateMusic();
     this._drawParticles();
 
     this.composer.render();
-
     this.stats?.update();
   }
 
-  /**
-   * [Update an basic]
-   * @param {AnalyserNode} audioAnalyser - Web Audio Analyzer
-   * @param {Uint8Array} audioArray - Audio frequencyBinCount
-   * */
-  _getFrequencies(audioAnalyser, audioArray) {
-    audioAnalyser.getByteFrequencyData(audioArray);
+  _getMusicFrequencies() {
+    this.audioAnalyser1.getByteFrequencyData(this.audioArray1);
 
-    const length = audioArray.length;
+    const length = this.audioArray1.length;
 
-    const lowerHalfArray = audioArray.slice(0, length / 2 - 1);
-    const upperHalfArray = audioArray.slice(length / 2 - 1, length - 1);
+    const lowerHalfArray = this.audioArray1.slice(0, length / 2 - 1);
+    const upperHalfArray = this.audioArray1.slice(length / 2 - 1, length - 1);
 
-    const overallAvg = Utils.avg(audioArray);
+    const overallAvg = Utils.avg(this.audioArray1);
     const lowerMax = Utils.max(lowerHalfArray);
     const lowerAvg = Utils.avg(lowerHalfArray);
     const upperMax = Utils.max(upperHalfArray);
@@ -489,32 +491,13 @@ export default class Scenario {
     const upperMaxFr = upperMax / upperHalfArray.length;
     const upperAvgFr = upperAvg / upperHalfArray.length;
 
-    return {
+    this.frequencies = {
       overallAvg,
       lowerMaxFr,
       lowerAvgFr,
       upperMaxFr,
       upperAvgFr,
     };
-  }
-
-  /**
-   * [Get image pixel data]
-   * @param {HTMLVideoElement} image - Image
-   * */
-  _getImageData(video) {
-    const w = video.width;
-    const h = video.height;
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = w;
-    canvas.height = h;
-
-    ctx.drawImage(video, 0, 0);
-
-    return ctx.getImageData(0, 0, w, h);
   }
 }
 

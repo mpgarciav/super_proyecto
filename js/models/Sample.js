@@ -1,38 +1,38 @@
 export default class Sample {
-  constructor (url) {
-    this.status = false
-    this.element = new Audio(url)
+  constructor(url) {
+    this.status = false;
+    this.element = new Audio(url);
   }
 
-  play () {
-    this.status = true
-    this.element.play()
+  play() {
+    this.status = true;
+    this.element.play();
   }
 
-  pause () {
-    this.status = false
-    this.element.pause()
+  pause() {
+    this.status = false;
+    this.element.pause();
   }
 
-  stop () {
-    this.status = false
-    this.element.pause()
-    this.element.currentTime = 0
+  stop() {
+    this.status = false;
+    this.element.pause();
+    this.element.currentTime = 0;
   }
 
-  setVolume (value) {
-    this.element.volume = value
+  setVolume(value) {
+    this.element.volume = value;
   }
 
-  getVolume () {
-    return this.element.volume
+  getVolume() {
+    return this.element.volume;
   }
 
-  getDuration () {
-    return this.element.duration
+  getDuration() {
+    return this.element.duration;
   }
 
-  isPlaying () {
-    return this.status
+  isPlaying() {
+    return this.status;
   }
 }
