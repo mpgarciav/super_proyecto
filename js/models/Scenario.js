@@ -170,8 +170,8 @@ export default class Scenario {
   }
 
   _createLights() {
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0);
-    this.scene.add(this.ambientLight);
+    // this.ambientLight = new THREE.AmbientLight(0xffffff, 0);
+    // this.scene.add(this.ambientLight);
   }
 
   _createParticles() {
@@ -427,7 +427,7 @@ export default class Scenario {
     const lights = Utils.modulate(overallAvg, 0, 20, 0.5, 0);
     const bloom = Utils.modulate(overallAvg, 0, 20, 1.67, 0.42);
 
-    this.ambientLight.intensity = lights;
+    // this.ambientLight.intensity = lights;
 
     this.bloomPass.strength = Number(bloom);
     this.config.bloomPass.strength = bloom;
@@ -536,11 +536,11 @@ void main() {
     float gray = vGray;
 
     // Decide whether to draw particle
-    if(gray > 0.5){
-        gray = 0.0;
-    }else{
-        gray = 1.0;
-    }
+    // if(gray > 0.5){
+    //     gray = 0.0;
+    // }else{
+    //     gray = 1.0;
+    // }
 
     // Set vertex color
     gl_FragColor = vec4(vColor, gray);
