@@ -26,6 +26,11 @@ export default class Scenario {
   constructor(container) {
     this.container = document.querySelector(container);
     this.frequencies = null;
+    this.constants = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      normalization: 100,
+    }
     this.config = {
       colors: {
         purple: 0x463190,
@@ -43,7 +48,9 @@ export default class Scenario {
         theta: 0,
         velocity: 0.1,
         radius: 10,
-        focalLength: 20,
+        focalLength: 1,
+        mouseX: 0,
+        mouseY: 0,
       },
       lights: {
         theta: 0,
@@ -54,7 +61,7 @@ export default class Scenario {
         scale: 15,
         velocity: 1,
         growthFactor: {
-          max: 20,
+          max: 50,
           min: 0,
           value: 0,
         },
@@ -167,6 +174,7 @@ export default class Scenario {
 
   _createScene() {
     this.scene = new THREE.Scene();
+    // this.scene.background = new THREE.Color(0xffffff)
   }
 
   _createCamera() {
@@ -177,7 +185,7 @@ export default class Scenario {
       2000
     );
     this.camera.setLens(this.config.camera.focalLength);
-    this.camera.position.set(0, 5, -200);
+    this.camera.position.y = 100;
     // this.scene.add(this.camera)
   }
 
@@ -256,10 +264,11 @@ export default class Scenario {
       fragmentShader: fragmentSource,
       transparent: true,
       // depthWrite: false,
-      // blending: THREE.AdditiveBlending,
+      // blending: THREE.MultiplyBlending,
     });
 
     this.particlesPlane = new THREE.Points(geometry, material);
+    // this.particlesPlane.rotation.y = -Math.PI/2;
     this.scene.add(this.particlesPlane);
   }
 
@@ -279,7 +288,7 @@ export default class Scenario {
 
         particles.geometry.attributes.position.setY(
           i,
-          gray * this.config.particles.growthFactor.value
+          (1 - gray) * this.config.particles.growthFactor.value
         );
         particles.geometry.attributes.color.setX(i, r);
         particles.geometry.attributes.color.setY(i, g);
@@ -341,35 +350,15 @@ export default class Scenario {
     // this.composer.addPass(this.filmPass);
   }
 
-  _createScenario() {}
+  _createScenario() { }
 
-  onWindowResize() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setSize(width, height);
-    this.composer.setSize(width, height);
-  }
-
-  onMusicControl(action) {
-    if (action === "play") {
-      this.audioContext.resume();
-    } else {
-      this.audioContext.suspend();
-    }
-
-    this.musicPlayer[action]();
-  }
 
   _initWebcam() {
     this.webcam = document.createElement("video");
     this.webcam.id = "webcam";
     this.webcam.autoplay = true;
     this.webcam.width = 96;
-    this.webcam.height = 72;
+    this.webcam.height = 54;
 
     // Get image from camera
     navigator.mediaDevices
@@ -391,7 +380,7 @@ export default class Scenario {
     this._createRenderer();
     this._createScene();
     this._createCamera();
-    this._createControls();
+    // this._createControls();
     this._createLights();
     this._createPostEffects();
     this._createGUI();
@@ -403,14 +392,9 @@ export default class Scenario {
   }
 
   _animateCamera() {
-    this.camera.position.set(
-      this.config.camera.radius *
-        Math.sin(THREE.MathUtils.degToRad(this.config.camera.theta)),
-      this.config.camera.radius *
-        Math.sin(THREE.MathUtils.degToRad(this.config.camera.theta)),
-      this.config.camera.radius *
-        Math.cos(THREE.MathUtils.degToRad(this.config.camera.theta))
-    );
+    const {height,width,normalization} = this.constants
+    this.camera.position.x += (this.config.camera.mouseX + - this.camera.position.x) * .05;
+    this.camera.position.y += (-this.config.camera.mouseY- this.camera.position.y) *1;
     this.camera.lookAt(this.scene.position);
     this.camera.updateMatrixWorld();
   }
@@ -457,19 +441,20 @@ export default class Scenario {
   }
 
   _animate() {
-    this.config.camera.theta += this.config.camera.velocity;
 
     if (this.musicPlayer.isPlaying()) {
       this.config.lights.theta += this.config.lights.velocity;
+
     }
 
-    // this._animateCamera();
+    this._animateCamera();
     this._getMusicFrequencies();
     this._animateMusic();
     this._drawParticles();
 
     this.composer.render();
     this.stats?.update();
+
   }
 
   _getMusicFrequencies() {
@@ -499,6 +484,34 @@ export default class Scenario {
       upperAvgFr,
     };
   }
+
+  onWindowResize() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setSize(width, height);
+    this.composer.setSize(width, height);
+  }
+
+  onMusicControl(action) {
+    if (action === "play") {
+      this.audioContext.resume();
+    } else {
+      this.audioContext.suspend();
+    }
+
+    this.musicPlayer[action]();
+  }
+
+  onMouseMove(event) {
+    const {width,height,normalization} = this.constants
+    this.config.camera.mouseX = (event.clientX - width / 2) / normalization;
+    this.config.camera.mouseY = (event.clientY - height / 2) / normalization;
+    
+  }
 }
 
 const vertexSource = `
@@ -515,7 +528,7 @@ void main() {
 
     // Set vertex size
     // gl_PointSize = size * vGray * 3.0;
-    gl_PointSize = size;
+    gl_PointSize = size*((0.5 * vGray) + 0.5);
 
     // Set vertex position
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
@@ -527,8 +540,7 @@ varying vec3 vColor;
 varying float vGray;
 
 void main() {
-    float gray = vGray;
-
+    float gray = 1. - vGray;
     // Set vertex color
     gl_FragColor = vec4(vColor, 1);
 }

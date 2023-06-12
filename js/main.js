@@ -19,5 +19,7 @@ window.addEventListener("load", () => {
   const stopButton = document.getElementById("stop");
   stopButton.addEventListener("click", () => app.onMusicControl("stop"));
 
-  window.addEventListener("resize", () => app._onWindowResize());
+  window.addEventListener("resize", () => app.onWindowResize());
+  document.addEventListener("mousemove", (event) => app.onMouseMove(event));
+
 });
